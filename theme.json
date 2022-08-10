@@ -49,7 +49,7 @@
                 }
             },
             {
-                "functions_def": {
+                "function_def": {
                     "color": "#61afd1",
                     "paper-color": "#282c34",
                     "font": { 

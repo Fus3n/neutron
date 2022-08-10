@@ -22,6 +22,7 @@ class PyCustomLexer(QsciLexerCustom):
         super(PyCustomLexer, self).__init__(parent)
         self.theme = theme
         self.theme_json = None
+        
         if self.theme is None:
             self.theme = "./theme.json"
 
@@ -60,7 +61,7 @@ class PyCustomLexer(QsciLexerCustom):
             "keyword",
             "classes",
             "functions",
-            "functions_def",
+            "function_def",
             "string",
             "types",
             "keyargs",
@@ -99,40 +100,6 @@ class PyCustomLexer(QsciLexerCustom):
                     except AttributeError as e:
                         print(f"Theme error: {e}")
 
-
-
-        # self.setColor(QColor("#abb2bf"), self.DEFAULT)
-        # self.setColor(QColor("#c678dd"), self.KEYWORD)
-        # self.setColor(QColor("#56b6c2"), self.TYPES)
-        # self.setColor(QColor("#98c379"), self.STRING)
-        # self.setColor(QColor("#c678dd"), self.KEYARGS)
-        # self.setColor(QColor("#c678dd"), self.BRACKETS)
-        # self.setColor(QColor("#777777"), self.COMMENTS)
-        # self.setColor(QColor("#d19a5e"), self.CONSTANTS)
-        # self.setColor(QColor("#61afd1"), self.FUNCTIONS)
-        # self.setColor(QColor("#C68F55"), self.CLASSES)
-        # self.setColor(QColor("#61afd1"), self.FUNCTION_DEF)
-
-        # # Initialize paper colors per style
-        # # ----------------------------------
-        # self.setPaper(QColor("#282c34"), self.DEFAULT)
-        # self.setPaper(QColor("#282c34"), self.KEYWORD)
-        # self.setPaper(QColor("#282c34"), self.TYPES)
-        # self.setPaper(QColor("#282c34"), self.STRING)
-        # self.setPaper(QColor("#282c34"), self.KEYARGS)
-        # self.setPaper(QColor("#282c34"), self.BRACKETS)
-        # self.setPaper(QColor("#282c34"), self.COMMENTS)
-        # self.setPaper(QColor("#282c34"), self.CONSTANTS)
-        # self.setPaper(QColor("#282c34"), self.FUNCTIONS)
-        # self.setPaper(QColor("#282c34"), self.CLASSES)
-        # self.setPaper(QColor("#282c34"), self.FUNCTION_DEF)
-
-        # # Initialize fonts per style
-        # # ---------------------------
-        # self.setFont(QFont("Consolas", 14, weight=QFont.Bold), self.DEFAULT)
-        # self.setFont(QFont("Consolas", 14, weight=QFont.Bold), self.KEYWORD)
-        # self.setFont(QFont("Consolas", 14, weight=QFont.Bold), self.CLASSES)
-        # self.setFont(QFont("Consolas", 14, weight=QFont.Bold), self.FUNCTION_DEF)
 
     def language(self):
         return "PythonCustom"
