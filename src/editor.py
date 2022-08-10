@@ -1,27 +1,32 @@
-import keyword
-import pkgutil
+from pathlib import Path
 from PyQt5.Qsci import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
+
 from lexer import PyCustomLexer
+from autocompleter import AutoCompleter
 
 
 class Editor(QsciScintilla):
-    def __init__(self, parent=None, name="", full_path="", autocomplete=True):
+    def __init__(self, parent=None, path: Path = None,  python_file=True, env=None):
         super(Editor, self).__init__(parent)
         
-        self.name = name
-        self.complete_flag = autocomplete
+        self.path = path
+        self.full_path = self.path.absolute()
+        self.is_python_file = python_file
+        self.venv = env
+        
 
-
+    
+        self.cursorPositionChanged.connect(self.cursorPositionChangedCustom)
+ 
         # encoding       
         self.setUtf8(True)
         # font
-        self.font = QFont("FiraCode", 12)
+        self.font = QFont("Consolas", 14)
         self.setFont(self.font)
-        self.setFont(self.font)
-
+        
         # brace mactching
         self.setBraceMatching(QsciScintilla.SloppyBraceMatch)
 
@@ -43,21 +48,35 @@ class Editor(QsciScintilla):
         self.setCaretWidth(2)
         self.setCaretLineBackgroundColor(QColor("#2c313c"))
 
+        # bracket matching colors
+        self.setMatchedBraceBackgroundColor(QColor("#c678dd"))
+        self.setMatchedBraceForegroundColor(QColor("#F2E3E3"))
+
         # EOL
         self.setEolMode(QsciScintilla.EolWindows)
         self.setEolVisibility(False)
 
-        # lexer
-        self.pylexer = PyCustomLexer(self)
-        # QsciLexerPython
-        self.pylexer.setDefaultFont(self.font)
+        if self.is_python_file:
+            # lexer
+            self.pylexer = PyCustomLexer(self)
+            # QsciLexerPython
+            self.pylexer.setDefaultFont(self.font)
 
-        # Api AUTOCOMPLETION
-        self.__api = QsciAPIs(self.pylexer)
-        if self.complete_flag:
-            self.load_autocomplete()
+            # Api AUTOCOMPLETION
+            # API
+            self.__api = QsciAPIs(self.pylexer)
 
-        self.setLexer(self.pylexer)
+            self.auto_completer = AutoCompleter(self.full_path, self.__api)
+            self.auto_completer.finished.connect(self.loaded_autocomp)
+            
+            self.setLexer(self.pylexer)
+        else:
+            # self.lexer = QsciLexer()
+            self.setPaper(QColor("#282c34"))
+            self.setColor(QColor("#abb2bf"))
+            # self.lexer.setDefaultColor("#abb2bf")
+            # self.lexer.setDefaultFont(QFont("Consolas", 14))
+            # self.setLexer(self.lexer)
 
         # style
         self.setIndentationGuidesBackgroundColor(QColor("#dedcdc"))
@@ -111,17 +130,25 @@ class Editor(QsciScintilla):
     @autocomplete.setter
     def set_autocomplete(self, value):
         self.complete_flag = value
-        if value:
-            self.load_autocomplete()
-        else:
-            self.unload_autocomplete()
+
 
     def keyPressEvent(self, e: QKeyEvent) -> None:
-        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space and self.complete_flag:
-            self.autoCompleteFromAll()
+        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space:
+            if self.is_python_file:
+                pos = self.getCursorPosition()
+                self.auto_completer.get_completion(pos[0]+1, pos[1], self.text())
+                self.autoCompleteFromAll()
         else:
-            # QsciScintilla.keyPressEvent(editor, e)
             return super().keyPressEvent(e)
+
+    def cursorPositionChangedCustom(self, line: int, index: int) -> None:
+        if self.is_python_file:
+            self.auto_completer.get_completion(line+1, index, self.text())
+
+    def loaded_autocomp(self):
+        pass
+
+
 
     # def marginClicked(self, margin: int, line: int, state: typing.Union[Qt.KeyboardModifiers, Qt.KeyboardModifier]) -> None:
     #     # check if marker is set
@@ -138,14 +165,3 @@ class Editor(QsciScintilla):
     #         self.SendScintilla(QsciScintilla.SCI_INDICATORFILLRANGE, start_pos, len(self.text(line)))
     #     # return super().marginClicked(margin, line, state)
 
-    def load_autocomplete(self):
-        for key in keyword.kwlist + dir(__builtins__):
-            self.__api.add(key)
-
-        for _, name, _ in pkgutil.iter_modules():
-            self.__api.add(name)
-
-        self.__api.prepare()
-
-    def unload_autocomplete(self):
-        self.__api.clear()

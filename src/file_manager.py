@@ -11,11 +11,12 @@ from editor import Editor
 
 
 class FileManager(QTreeView):
-    def __init__(self, tab_view, set_new_tab=None):
+    def __init__(self, tab_view, set_new_tab=None, main_window=None):
         super(FileManager, self).__init__(None)
         
         self.set_new_tab = set_new_tab
         self.tab_view = tab_view
+        self.main_window = main_window
 
         self.is_editing = False
         self.edit_done_cb = None
@@ -110,14 +111,14 @@ class FileManager(QTreeView):
                         if prev_name == new_name:
                             return
                         for editor in self.tab_view.findChildren(Editor):
-                            if editor.name == prev_name:
-                                editor.name = new_name
+                            if editor.path.name == prev_name:
+                                editor.path = editor.path.parent / new_name
                                 self.tab_view.setTabText(
                                     self.tab_view.indexOf(editor), new_name
                                 )
                                 self.tab_view.repaint()
-                                editor.full_path = Path(self.model.rootPath()) / new_name
-                                self.current_file = Path(editor.full_path)
+                                editor.full_path = editor.path.absolute()
+                                self.main_window.current_file = editor.path
                                 break
 
                     self.custom_rename(ix, rename_callback)

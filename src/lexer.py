@@ -105,7 +105,7 @@ class PyCustomLexer(QsciLexerCustom):
                     try:
                         self.setFont(
                             QFont(
-                                v.get('family'),
+                                v.get('family', 'Consolas'),
                                 v.get('font-size', 14),
                                 self.font_weights.get(v.get('font-weight', QFont.Normal)),
                                 v.get('italic', False)

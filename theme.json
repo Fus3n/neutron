@@ -1,6 +1,7 @@
 {
     "theme": {
         "name": "default-dark",
+        "version": "1.0",
         
         "syntax": [
             {

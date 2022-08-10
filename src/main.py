@@ -7,10 +7,10 @@ from file_manager import FileManager
 from fuzzy_searcher import SearchItem, SearchWorker
 import resources
 
-import shutil
 import sys
 import os
 from pathlib import Path
+import jedi
 
 
 class MainWindow(QMainWindow):
@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
 
         self.current_file = None
         self.current_side_bar = None
+        self.envs = list(jedi.find_virtualenvs())
         self.init_ui()
 
     @property
@@ -39,17 +40,20 @@ class MainWindow(QMainWindow):
         self.window_font = QFont("FiraCode", 12)
         self.setFont(self.window_font)
 
-        self.setUpMenu()
+        self.set_up_menu()
 
         self.setUpBody()
 
-        self.setUpStatusBar()
+        self.set_up_status_bar()
 
         self.show()
 
-    def get_editor(self, name: str = "", full_path="") -> QsciScintilla:
+    def get_editor(self, path: Path = None, is_python_file=True) -> QsciScintilla:
         """Create a New Editor"""
-        editor = Editor(name=name, full_path=full_path)
+        venv = None
+        if len(self.envs) > 0:
+            venv = self.envs[0]
+        editor = Editor(path=path, env=venv, python_file=is_python_file)
         return editor
 
     def set_cursor_pointer(self, e: QEnterEvent) -> None:
@@ -58,12 +62,12 @@ class MainWindow(QMainWindow):
     def set_cursor_arrow(self, e) -> None:
         self.setCursor(Qt.ArrowCursor)
 
-    def get_sidebar_button(self, img_path: str, type) -> QLabel:
+    def get_sidebar_button(self, img_path: str, widget) -> QLabel:
         label = QLabel()
         label.setPixmap(QPixmap(img_path).scaled(QSize(32, 32)))
         label.setAlignment(Qt.AlignmentFlag.AlignTop)
         label.setFont(self.window_font)
-        label.mousePressEvent = lambda e: self.show_hide_tab(e, type)
+        label.mousePressEvent = lambda e: self.show_hide_tab(e, widget)
         label.setMouseTracking(True)
         label.enterEvent = self.set_cursor_pointer
         label.leaveEvent = self.set_cursor_arrow
@@ -124,6 +128,7 @@ class MainWindow(QMainWindow):
         self.tab_view.setMouseTracking(True)
         self.tab_view.enterEvent = self.set_cursor_pointer
         self.tab_view.leaveEvent = self.set_cursor_arrow
+        self.tab_view.currentChanged.connect(self.tab_changed)
 
 
         ###############################################
@@ -142,20 +147,7 @@ class MainWindow(QMainWindow):
         side_bar_content.setContentsMargins(5, 10, 5, 0)
         side_bar_content.setAlignment(Qt.AlignTop | Qt.AlignCenter)
 
-        ####################################################
-        ############## SideBar Icons #######################
-        folder_label = self.get_sidebar_button(
-            ":/icons/folder-icon-blue.svg", "file-manager"
-        )
-        side_bar_content.addWidget(folder_label)
-        search_label = self.get_sidebar_button(":/icons/search-icon.svg", "search")
-        side_bar_content.addWidget(search_label)
-
-        self.side_bar.setLayout(side_bar_content)
-        body.addWidget(self.side_bar)
-
         
-
         ###############################################
         ############ File Manager ###############
 
@@ -169,7 +161,7 @@ class MainWindow(QMainWindow):
         self.file_manager_layout.setContentsMargins(0, 0, 0, 0)
         self.file_manager_layout.setSpacing(0)
 
-        self.file_manager = FileManager(tab_view=self.tab_view,set_new_tab=self.set_new_tab) # was tree_view
+        self.file_manager = FileManager(tab_view=self.tab_view,set_new_tab=self.set_new_tab, main_window=self) # was tree_view
 
         # setup layout
         self.file_manager_layout.addWidget(self.file_manager)
@@ -221,12 +213,59 @@ class MainWindow(QMainWindow):
         search_layout.addWidget(self.search_list_view)
         self.search_frame.setLayout(search_layout)
 
-       
+        self.welcome_frame = self.get_frame()
+        self.welcome_frame.setStyleSheet(
+        """
+            QFrame {
+                background-color: #21252b;
+                border: none;
+                color: #D3D3D3;
+            }
+            QFrame::hover {
+                color: white;
+            }
+        """
+        )
+
+        
+        ####################################################
+        ############## SideBar Icons #######################
+        folder_label = self.get_sidebar_button(
+            ":/icons/folder-icon-blue.svg", self.file_manager_frame
+        )
+        side_bar_content.addWidget(folder_label)
+        search_label = self.get_sidebar_button(":/icons/search-icon.svg", self.search_frame)
+        side_bar_content.addWidget(search_label)
+
+        self.side_bar.setLayout(side_bar_content)
+        body.addWidget(self.side_bar)
+
+
+        welcome_layout = QVBoxLayout()
+        welcome_layout.setContentsMargins(0, 10, 0, 0)
+
+        wlcm_title = QLabel("Welcome to Neutron!")
+        wlcm_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        wlcm_title.setFont(QFont("Consolas", 25))
+        wlcm_title.setStyleSheet("color: #84878B;")
+        wlcm_title.setContentsMargins(0, 40, 0, 0)
+
+        wlcm_msg = QLabel("This is a simple code editor.\nYou can create new files and open existing ones.")
+        wlcm_msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        wlcm_msg.setFont(QFont("Consolas", 15))
+        wlcm_msg.setStyleSheet("color: #84878B;")
+        wlcm_msg.setContentsMargins(0, -2, 0, 0)
+
+        welcome_layout.addWidget(wlcm_title)
+        welcome_layout.addWidget(wlcm_msg)
+        self.welcome_frame.setLayout(welcome_layout)
 
         # add file manager and tab view
-        self.current_side_bar = "file-manager"
         self.hsplit.addWidget(self.file_manager_frame)
-        self.hsplit.addWidget(self.tab_view)
+        self.hsplit.addWidget(self.welcome_frame)
+        self.current_side_bar = self.file_manager_frame
+        
+        # self.hsplit.addWidget(self.tab_view)
 
         # add hsplit and sidebar to body
         body.addWidget(self.side_bar)
@@ -248,33 +287,34 @@ class MainWindow(QMainWindow):
         editor.setCursorPosition(item.lineno, item.end)
         editor.setFocus()
 
-    
-
     def new_file_act(self):
         """Create new file"""
         ...
 
-    def show_hide_tab(self, e: QMouseEvent, type_: str):
-        if type_ == "file-manager":
-            if not (self.file_manager_frame in self.hsplit.children()):
-                self.hsplit.replaceWidget(0, self.file_manager_frame)
-        elif type_ == "search":
-            if not (self.search_frame in self.hsplit.children()):
-                self.hsplit.replaceWidget(0, self.search_frame)
-
-        if self.current_side_bar == type_:
-            frame = self.hsplit.children()[0]
-            if frame.isHidden():
-                frame.show()
+    def show_hide_tab(self, e: QMouseEvent, widget: str):
+        if self.current_side_bar == widget:
+            if widget.isHidden():
+                widget.show()
             else:
-                frame.hide()
+                widget.hide()
 
-        self.current_side_bar = type_
+            return
+
+       
+        self.hsplit.replaceWidget(0, widget)
+        self.current_side_bar = widget
+        self.current_side_bar.show()
+
 
     def close_tab(self, index: int):
         self.tab_view.removeTab(index)
 
-    def setUpStatusBar(self):
+    def tab_changed(self, index: int):
+        editor = self.tab_view.widget(index)
+        if editor:
+            self.current_file = editor.path
+
+    def set_up_status_bar(self):
         # Create a status bar
         stat = QStatusBar(self)
         # change message
@@ -282,7 +322,7 @@ class MainWindow(QMainWindow):
         stat.showMessage("Ready", 3000)
         self.setStatusBar(stat)
 
-    def setUpMenu(self):
+    def set_up_menu(self):
         # Create a menu bar ,
         menu_bar = self.menuBar()
 
@@ -340,7 +380,11 @@ class MainWindow(QMainWindow):
 
     def set_new_tab(self, path: Path, is_new_file=False):
         # check if file is binary or not
-        text_edit = self.get_editor(path.name, path.absolute())
+        if self.welcome_frame:
+            idx = self.hsplit.indexOf(self.welcome_frame)
+            self.hsplit.replaceWidget(idx, self.tab_view)
+            self.welcome_frame = None
+        text_edit = self.get_editor(path, path.suffix in {".py", ".pyw"})
         if is_new_file:
             self.tab_view.addTab(text_edit, "untitled")
             self.setWindowTitle("untitled - " + self.app_name)
