@@ -187,3 +187,17 @@ QTreeView::item:selected {
     /* border: 1px solid #D3D3D3; */
     color: #D3D3D3;
 }
+
+QMenuBar {
+    background-color: #282c34;
+    border: 1px solid #21252b;
+    padding: 3px;
+    color: #D3D3D3;
+    font-size: 15px;
+}
+
+QMenuBar::item {
+    background-color: #282c34;
+    padding: 3px;
+    color: #D3D3D3;
+}

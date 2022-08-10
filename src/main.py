@@ -96,6 +96,15 @@ class MainWindow(QMainWindow):
 
         return frame
 
+    def create_label(self, text, style_sheet, alignment, font="Consolas", font_size=15, min_height=200):
+        lbl = QLabel(text)
+        lbl.setAlignment(alignment)
+        lbl.setFont(QFont(font, font_size))
+        lbl.setStyleSheet(style_sheet)
+        lbl.setContentsMargins(0, 0, 0, 0)
+        lbl.setMaximumHeight(min_height)
+        return lbl
+
     def setUpBody(self):
         ###############################################
         ################ BODY ####################
@@ -213,6 +222,20 @@ class MainWindow(QMainWindow):
         search_layout.addWidget(self.search_list_view)
         self.search_frame.setLayout(search_layout)
 
+    
+        ####################################################
+        ############## SideBar Icons #######################
+        folder_label = self.get_sidebar_button(
+            ":/icons/folder-icon-blue.svg", self.file_manager_frame
+        )
+        side_bar_content.addWidget(folder_label)
+        search_label = self.get_sidebar_button(":/icons/search-icon.svg", self.search_frame)
+        side_bar_content.addWidget(search_label)
+
+        self.side_bar.setLayout(side_bar_content)
+        body.addWidget(self.side_bar)
+
+
         self.welcome_frame = self.get_frame()
         self.welcome_frame.setStyleSheet(
         """
@@ -227,34 +250,26 @@ class MainWindow(QMainWindow):
         """
         )
 
-        
-        ####################################################
-        ############## SideBar Icons #######################
-        folder_label = self.get_sidebar_button(
-            ":/icons/folder-icon-blue.svg", self.file_manager_frame
-        )
-        side_bar_content.addWidget(folder_label)
-        search_label = self.get_sidebar_button(":/icons/search-icon.svg", self.search_frame)
-        side_bar_content.addWidget(search_label)
-
-        self.side_bar.setLayout(side_bar_content)
-        body.addWidget(self.side_bar)
-
-
         welcome_layout = QVBoxLayout()
-        welcome_layout.setContentsMargins(0, 10, 0, 0)
+        welcome_layout.setContentsMargins(0, 0, 0, 0)
+        welcome_layout.setSpacing(20)
+        welcome_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        wlcm_title = QLabel("Welcome to Neutron!")
-        wlcm_title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        wlcm_title.setFont(QFont("Consolas", 25))
-        wlcm_title.setStyleSheet("color: #84878B;")
-        wlcm_title.setContentsMargins(0, 40, 0, 0)
 
-        wlcm_msg = QLabel("This is a simple code editor.\nYou can create new files and open existing ones.")
-        wlcm_msg.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        wlcm_msg.setFont(QFont("Consolas", 15))
-        wlcm_msg.setStyleSheet("color: #84878B;")
-        wlcm_msg.setContentsMargins(0, -2, 0, 0)
+        wlcm_title = self.create_label(
+            "Welcome to Neutron!",
+            "color: #84878B;",
+            Qt.AlignmentFlag.AlignHCenter,
+            font_size=25,
+            min_height=90,
+        )
+        wlcm_msg = self.create_label(
+            "This is a simple code editor.\nYou can create new files and open existing ones.",
+            "color: #84878B;",
+            Qt.AlignmentFlag.AlignHCenter,
+            font_size=15,
+            min_height=100,
+        )
 
         welcome_layout.addWidget(wlcm_title)
         welcome_layout.addWidget(wlcm_msg)
