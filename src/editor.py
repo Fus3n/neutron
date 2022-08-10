@@ -8,9 +8,12 @@ from lexer import PyCustomLexer
 
 
 class Editor(QsciScintilla):
-    def __init__(self, parent=None, name="", full_path=""):
+    def __init__(self, parent=None, name="", full_path="", autocomplete=True):
         super(Editor, self).__init__(parent)
+        
         self.name = name
+        self.complete_flag = autocomplete
+
 
         # encoding       
         self.setUtf8(True)
@@ -49,17 +52,11 @@ class Editor(QsciScintilla):
         # QsciLexerPython
         self.pylexer.setDefaultFont(self.font)
 
-        # Api
+        # Api AUTOCOMPLETION
         self.__api = QsciAPIs(self.pylexer)
-        for key in keyword.kwlist + dir(__builtins__):
-            self.__api.add(key)
+        if self.complete_flag:
+            self.load_autocomplete()
 
-        for _, name, _ in pkgutil.iter_modules():
-            self.__api.add(name)
-
-        self.__api.prepare()
-
-        # self.pylexer.setAPIs(self.__api)
         self.setLexer(self.pylexer)
 
         # style
@@ -107,8 +104,20 @@ class Editor(QsciScintilla):
 
         self.indicatorDefine(QsciScintilla.SquigglePixmapIndicator, 0)
 
+    @property
+    def autocomplete(self):
+        return self.complete_flag
+    
+    @autocomplete.setter
+    def set_autocomplete(self, value):
+        self.complete_flag = value
+        if value:
+            self.load_autocomplete()
+        else:
+            self.unload_autocomplete()
+
     def keyPressEvent(self, e: QKeyEvent) -> None:
-        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space:
+        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space and self.complete_flag:
             self.autoCompleteFromAll()
         else:
             # QsciScintilla.keyPressEvent(editor, e)
@@ -128,3 +137,15 @@ class Editor(QsciScintilla):
     #         # Now apply the indicator-style on the chosen text
     #         self.SendScintilla(QsciScintilla.SCI_INDICATORFILLRANGE, start_pos, len(self.text(line)))
     #     # return super().marginClicked(margin, line, state)
+
+    def load_autocomplete(self):
+        for key in keyword.kwlist + dir(__builtins__):
+            self.__api.add(key)
+
+        for _, name, _ in pkgutil.iter_modules():
+            self.__api.add(name)
+
+        self.__api.prepare()
+
+    def unload_autocomplete(self):
+        self.__api.clear()

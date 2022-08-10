@@ -17,12 +17,15 @@ import json
 # QFont::ExtraBold	800	800
 # QFont::Black	900	900
 
+
+
 class PyCustomLexer(QsciLexerCustom):
     def __init__(self, parent, theme=None):
         super(PyCustomLexer, self).__init__(parent)
+
         self.theme = theme
         self.theme_json = None
-        
+
         if self.theme is None:
             self.theme = "./theme.json"
 
@@ -70,6 +73,18 @@ class PyCustomLexer(QsciLexerCustom):
             "constants",
         ]
 
+        self.font_weights = {
+            'thin': QFont.Thin,
+            'extralight': QFont.ExtraLight,
+            'light': QFont.Light,
+            'normal': QFont.Normal,
+            'medium': QFont.Medium,
+            'demibold': QFont.DemiBold,
+            'bold': QFont.Bold,
+            'extrabold': QFont.ExtraBold,
+            'black': QFont.Black,
+        }
+
         with open(self.theme, "r") as f:
             self.theme_json = json.load(f)
         
@@ -92,7 +107,8 @@ class PyCustomLexer(QsciLexerCustom):
                             QFont(
                                 v.get('family'),
                                 v.get('font-size', 14),
-                                QFont.Bold,
+                                self.font_weights.get(v.get('font-weight', QFont.Normal)),
+                                v.get('italic', False)
                                 ), 
                                 getattr(self, name.upper()
                             )

@@ -10,9 +10,9 @@
                     "font": { 
                             "family": "consolas",
                             "font-size": 14,
-                            "font-weight": "bold"
+                            "font-weight": "bold",
+                            "italic": false
                         }
-                    
                 }
             },
             {
@@ -22,7 +22,8 @@
                     "font": { 
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold"
+                        "font-weight": "bold",
+                        "italic": false
                     }
                 }
             },
@@ -33,7 +34,8 @@
                     "font": { 
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold"
+                        "font-weight": "bold",
+                        "italic": false
                     }
                 }
             },
@@ -44,7 +46,8 @@
                     "font": { 
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold"
+                        "font-weight": "bold",
+                        "italic": false
                     }
                 }
             },
@@ -55,7 +58,8 @@
                     "font": { 
                         "family": "consolas",
                         "font-size": 14,
-                        "font-weight": "bold"
+                        "font-weight": "bold",
+                        "italic": true
                     }
                 }
             },

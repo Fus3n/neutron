@@ -1,0 +1,23 @@
+-- THIS FILE HAS A CUSTOM SYNTAX HIGHLIGHTER
+
+-- Neutron
+    : turn on and off autocomplete and syntax on different files
+
+    - Fix alot of bugs 
+    - refactor code
+    - Create themeing api to add more language support
+    - improve toolbar menu and fix save and save as bugs
+    - improve python autocomplete and syntax
+
+    -- New Features
+        : LEARN HOW TO DO ALL THESE FIRST
+
+        - language server (maybe)
+        - code linting (maybe)
+        - extention system (maybe)
+        - add "*" when file is modified
+        - add welcome message when first opened
+    --/
+--/
+
+
