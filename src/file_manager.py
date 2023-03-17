@@ -1,15 +1,16 @@
-from pathlib import Path
-import shutil
-from typing import Callable
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.Qsci import *
+
+from pathlib import Path
+import shutil
 import os
+
 
 from editor import Editor
 
-
+# UPDATED EP 8
 class FileManager(QTreeView):
     def __init__(self, tab_view, set_new_tab=None, main_window=None):
         super(FileManager, self).__init__(None)
@@ -18,12 +19,12 @@ class FileManager(QTreeView):
         self.tab_view = tab_view
         self.main_window = main_window
 
-        self.is_editing = False
-        self.edit_done_cb = None
+        # Rename feature variables
+        self.is_renaming = False
         self.current_edit_index = None
+        self.previous_rename_name = None
 
         self.manager_font = QFont("FiraCode", 13)
-        
         
         self.model: QFileSystemModel = QFileSystemModel()
         self.model.setRootPath(os.getcwd())
@@ -59,26 +60,20 @@ class FileManager(QTreeView):
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.setDragDropMode(QAbstractItemView.DragDrop)
-        
+
+        # enable file name editing
+        self.itemDelegate().closeEditor.connect(self._on_closeEditor)
+
+    def _on_closeEditor(self, editor: QLineEdit):
+        if self.is_renaming:
+            self.is_editing = False
+            self.rename_file_with_index()
 
     def tree_view_clicked(self, index: QModelIndex):
         path = self.model.filePath(index)
         f = Path(path)
-        self.set_new_tab(f)
-
-    def delete_path(self, path: Path):
-        """delete file or folder with path"""
-        if path.is_dir():
-            shutil.rmtree(path)
-        else:
-            path.unlink()
-
-    def custom_rename(self, index: QModelIndex, callback: Callable[[QModelIndex], None]):
-        self.openPersistentEditor(index)
-        self.is_editing = True
-        self.current_edit_index = index
-        self.edit_done_cb = callback
-
+        if f.is_file():
+            self.set_new_tab(f)
 
     def show_dialog(self, title, msg) -> int:
         dialog = QMessageBox(self)
@@ -93,80 +88,111 @@ class FileManager(QTreeView):
         return dialog.exec_()
 
     def show_context_menu(self, pos: QPoint):
+        # UPDATED EP 8
         """Context menu for tree widget"""
         ix = self.indexAt(pos)
         menu = QMenu()
         menu.addAction("New File")
         menu.addAction("New Folder")
-        menu.addAction("Rename")
-        menu.addAction("Delete")
+
+        if ix.column() != -1:
+            menu.addAction("Rename")
+            menu.addAction("Delete")
         action = menu.exec_(self.viewport().mapToGlobal(pos))
 
-        if ix.column() == 0:
-            if action:
-                if action.text() == "Rename":
-                    prev_name = self.model.fileName(ix)
-                    def rename_callback(i):
-                        new_name = self.model.fileName(i)
-                        if prev_name == new_name:
-                            return
-                        for editor in self.tab_view.findChildren(Editor):
-                            if editor.path.name == prev_name:
-                                editor.path = editor.path.parent / new_name
-                                self.tab_view.setTabText(
-                                    self.tab_view.indexOf(editor), new_name
-                                )
-                                self.tab_view.repaint()
-                                editor.full_path = editor.path.absolute()
-                                self.main_window.current_file = editor.path
-                                break
+        if not action:
+            return
+            
+        if action.text() == "Rename":
+            self.action_rename(ix)
+        elif action.text() == "Delete":
+            self.action_delete(ix)
+        elif action.text() == "New Folder":
+            self.action_new_folder()
+        elif action.text() == "New File":
+            self.action_new_file(ix)
+        else:
+            pass
 
-                    self.custom_rename(ix, rename_callback)
+    def rename_file_with_index(self):
+        # UPDATED EP 8
+        new_name = self.model.fileName(self.current_edit_index)
+        if self.previous_rename_name == new_name:
+            return
+        for editor in self.tab_view.findChildren(Editor):
+            if editor.path.name == self.previous_rename_name:
+                editor.path = editor.path.parent / new_name
+                self.tab_view.setTabText(
+                    self.tab_view.indexOf(editor), new_name
+                )
+                self.tab_view.repaint()
+                editor.full_path = editor.path.absolute()
+                self.main_window.current_file = editor.path
+                break
 
-                elif action.text() == "Delete":
-                    # check if selection is more
-                    dialog = self.show_dialog(
-                        "Delete", "Are you sure you want to delete this file?"
-                    )
-                    if dialog == QMessageBox.Yes:
-                        if self.selectionModel().hasSelection():
-                            for i in self.selectionModel().selectedRows():
-                                path = Path(self.model.filePath(i))
-                                self.delete_path(path)
-                                for editor in self.tab_view.findChildren(Editor):
-                                    if editor.name == path.name:
-                                        self.tab_view.removeTab(
-                                            self.tab_view.indexOf(editor)
-                                        )
-                elif action.text() == "New Folder":
-                    # add a new item to tree view model and make it ediable
-                    idx = self.model.mkdir(self.rootIndex(), "New Folder")
-                    # edit that index
-                    self.edit(idx)
-                elif action.text() == "New File":
-                    # find file with name "file" in tree view
-                    f = Path(self.model.rootPath()) / "file"
-                    count = 1
-                    while f.exists():
-                        f = Path(f.parent / f"file{count}")
-                        count += 1
-                    f.touch()
-                    idx = self.model.index(str(f.absolute()))
-                    self.edit(idx)
+    def action_rename(self, ix: QModelIndex):
+        # UPDATED EP 8
+        self.edit(ix)
+        self.previous_rename_name = self.model.fileName(ix)
+        self.is_renaming = True
+        self.current_edit_index = ix
 
-                else:
-                    pass
+    def delete_path(self, path: Path):
+        """delete file or folder with path"""
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
 
+    def action_delete(self, ix):
+        # check if selection is more
+        file_name = self.model.fileName(ix)
+        dialog = self.show_dialog(
+            "Delete", f"Are you sure you want to delete {file_name}?"
+        )
+        if dialog == QMessageBox.Yes:
+            if self.selectionModel().hasSelection():
+                for i in self.selectionModel().selectedRows():
+                    path = Path(self.model.filePath(i))
+                    self.delete_path(path)
+                    for editor in self.tab_view.findChildren(Editor):
+                        if editor.path.name == path.name:
+                            self.tab_view.removeTab(
+                                self.tab_view.indexOf(editor)
+                            )
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if self.is_editing:
-            self.closePersistentEditor(self.current_edit_index)
-            self.is_editing = False
-            self.edit_done_cb(self.current_edit_index)
-        return super().keyPressEvent(event)
+    def action_new_file(self, ix: QModelIndex):
+        # UPDATED EP 9
+        root_path = self.model.rootPath()
+        if ix.column() != -1:
+            if self.model.isDir(ix):
+                self.expand(ix)
+                root_path = self.model.filePath(ix)
+            
+        # find file with name "file" in tree view
+        f = Path(root_path) / "file"
+        count = 1
+        while f.exists():
+            f = Path(f.parent / f"file{count}")
+            count += 1
+        f.touch()
+        
+        idx = self.model.index(str(f.absolute()))
+        self.edit(idx)
+
+    def action_new_folder(self):
+        f = Path(self.model.rootPath()) / "New Folder"
+        count = 1
+        while f.exists():
+            f = Path(f.parent / f"New Folder{count}")
+            count += 1
+        idx = self.model.mkdir(self.rootIndex(), f.name)
+        # edit that index
+        self.edit(idx)
 
     # item drop
     def dropEvent(self, e: QDropEvent) -> None:
+        # UPDATED EP 9
         """Drop event for tree view"""
         root_path = Path(self.model.rootPath())
         if e.mimeData().hasUrls():
@@ -175,7 +201,17 @@ class FileManager(QTreeView):
                 if path.is_dir():
                     shutil.copytree(path, root_path / path.name)
                 else:
-                    shutil.copy(path, root_path / path.name)
+                    if root_path.samefile(self.model.rootPath()):
+                        idx: QModelIndex = self.indexAt(e.pos())
+                        if idx.column() == -1:
+                            shutil.move(path, root_path / path.name)
+                        else:
+                            folder_path = Path(self.model.filePath(idx))
+                            shutil.move(path, folder_path / path.name)
+                    else:
+                        shutil.copy(path, root_path / path.name)
+                        
+                        
         e.accept()
 
         return super().dropEvent(e)

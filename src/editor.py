@@ -1,25 +1,33 @@
+from typing import TYPE_CHECKING
+
 from pathlib import Path
 from PyQt5.Qsci import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-
 from lexer import PyCustomLexer
 from autocompleter import AutoCompleter
 
+if TYPE_CHECKING:
+    from main import MainWindow
+
 
 class Editor(QsciScintilla):
-    def __init__(self, parent=None, path: Path = None,  python_file=True, env=None):
+
+    def __init__(self, main_window, parent=None, path: Path = None,  python_file=True, env=None):
         super(Editor, self).__init__(parent)
-        
+        # UPDATED EP 9
+        self.main_window: MainWindow = main_window
         self.path = path
         self.full_path = self.path.absolute()
         self.is_python_file = python_file
         self.venv = env
-        
-
+        self._current_file_changed = False        
     
+        # EDITOR
         self.cursorPositionChanged.connect(self.cursorPositionChangedCustom)
+        # UPDATED EP 9
+        self.textChanged.connect(self.textChangedCustom)
  
         # encoding       
         self.setUtf8(True)
@@ -33,14 +41,31 @@ class Editor(QsciScintilla):
         # indentation
         self.setTabWidth(4)
         self.setIndentationGuides(True)
-        self.setIndentationsUseTabs(True)
+        self.setIndentationsUseTabs(False) # don't use tabs, otherwise jedi can't work
         self.setAutoIndent(True)
 
         # autocomplete
-        self.setAutoCompletionSource(QsciScintilla.AcsAll)
+        self.setAutoCompletionSource(QsciScintilla.AcsAPIs)
         self.setAutoCompletionThreshold(1)
         self.setAutoCompletionCaseSensitivity(False)
         self.setAutoCompletionUseSingle(QsciScintilla.AcusNever)
+
+        self.setCallTipsStyle(QsciScintilla.CallTipsNoContext)
+        # Set the number of calltips that will be displayed at one time.
+        # 0 shows all applicable call tips.
+        self.setCallTipsVisible(0)
+        # This selects the position at which the call tip rectangle will appear.
+        # If it is not possible to show the call tip rectangle at the selected position
+        # because it would be displayed outside the bounds of the document, it will be
+        # displayed where it is possible.
+        self.setCallTipsPosition(QsciScintilla.CallTipsAboveText)
+        # Select the various highlight colors
+        # Background
+        self.setCallTipsBackgroundColor(QColor(0xff, 0xff, 0xff, 0xff))
+        # Text
+        self.setCallTipsForegroundColor(QColor(0x50, 0x50, 0x50, 0xff))
+        # Current argument text
+        self.setCallTipsHighlightColor(QColor(0xff, 0x00, 0x00, 0xff))
 
         # caret
         self.setCaretForegroundColor(QColor("#dedcdc"))
@@ -53,7 +78,7 @@ class Editor(QsciScintilla):
         self.setMatchedBraceForegroundColor(QColor("#F2E3E3"))
 
         # EOL
-        self.setEolMode(QsciScintilla.EolWindows)
+        self.setEolMode(QsciScintilla.EolMode.EolWindows)
         self.setEolVisibility(False)
 
         if self.is_python_file:
@@ -65,6 +90,8 @@ class Editor(QsciScintilla):
             # Api AUTOCOMPLETION
             # API
             self.__api = QsciAPIs(self.pylexer)
+            # autocompletion_image = QPixmap("./src/icons/close-icon.svg")
+            # self.registerImage(1, autocompletion_image)
 
             self.auto_completer = AutoCompleter(self.full_path, self.__api)
             self.auto_completer.finished.connect(self.loaded_autocomp)
@@ -119,9 +146,31 @@ class Editor(QsciScintilla):
         # # smooth circle
         # debug_circle.setDevicePixelRatio(self.devicePixelRatioF())
         # editor.markerDefine(debug_circle, 1)
-        # editor.marginClicked.connect(self.handle_margin)
+        # editor.marginClickEolWindowsed.connect(self.handle_margin)
 
         self.indicatorDefine(QsciScintilla.SquigglePixmapIndicator, 0)
+
+    # UPDATED EP 9
+    @property
+    def current_file_changed(self):
+        return self._current_file_changed
+    
+    # UPDATED EP 9
+    @current_file_changed.setter
+    def current_file_changed(self, value: bool):
+        curr_indx = self.main_window.tab_view.currentIndex()
+        if value:
+            self.main_window.tab_view.setTabText(curr_indx, "*" + self.path.name)
+            self.main_window.setWindowTitle(f"*{self.path.name} - {self.main_window.app_name}")
+        else:
+            if self.main_window.tab_view.tabText(curr_indx).startswith("*"):
+                self.main_window.tab_view.setTabText(
+                    curr_indx, 
+                    self.main_window.tab_view.tabText(curr_indx)[1:]
+                )
+                self.main_window.setWindowTitle(self.main_window.windowTitle()[1:])
+
+        self._current_file_changed = value
 
     @property
     def autocomplete(self):
@@ -131,15 +180,23 @@ class Editor(QsciScintilla):
     def set_autocomplete(self, value):
         self.complete_flag = value
 
-
     def keyPressEvent(self, e: QKeyEvent) -> None:
         if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space:
             if self.is_python_file:
                 pos = self.getCursorPosition()
                 self.auto_completer.get_completion(pos[0]+1, pos[1], self.text())
-                self.autoCompleteFromAll()
-        else:
-            return super().keyPressEvent(e)
+                self.autoCompleteFromAPIs()
+                return
+
+        # UPDATED EP 9
+        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_X:
+            if not self.hasSelectedText():
+                line, index = self.getCursorPosition()
+                self.setSelection(line, 0, line, self.lineLength(line))
+                self.cut()
+                return 
+
+        return super().keyPressEvent(e)
 
     def cursorPositionChangedCustom(self, line: int, index: int) -> None:
         if self.is_python_file:
@@ -148,6 +205,10 @@ class Editor(QsciScintilla):
     def loaded_autocomp(self):
         pass
 
+    # UPDATED EP 9
+    def textChangedCustom(self) -> None:
+        if not self.current_file_changed:
+            self.current_file_changed = True
 
 
     # def marginClicked(self, margin: int, line: int, state: typing.Union[Qt.KeyboardModifiers, Qt.KeyboardModifier]) -> None:

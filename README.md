@@ -4,3 +4,5 @@ Created using PyQt5 and QScintilla.
 
 ## Screenshots
 <img src="./src/imgs/screenshot1.png"/>
+
+

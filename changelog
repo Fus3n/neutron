@@ -1,0 +1,14 @@
+0.1.0
+-- New
+    - Added File Manger class
+    - added show_context_menu for file manager right-click interaction
+    - Editor class now takes in main window as argument
+    - Editor class handles showing "*" with tab title and window title when file is edited
+    - Editor now supports ctrl+x shortcut to cut line
+    
+-- Fixes
+    - fixed renaming using right-click interaction
+    - fixed file saving
+    - fixed save as
+    - file manager, fixed dropEvent and new file counting
+    - lexer, fixed comments bleeding over to next lines

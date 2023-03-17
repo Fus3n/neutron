@@ -22,7 +22,7 @@ class MainWindow(QMainWindow):
         self.current_side_bar = None
         self.envs = list(jedi.find_virtualenvs())
         self.init_ui()
-
+		
     @property
     def current_file(self) -> Path:
         return self._current_file
@@ -35,14 +35,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(self.app_name)
         self.resize(1300, 900)
 
-        # set stye sheet file
         self.setStyleSheet(open("./src/styles/style.qss", "r").read())
         self.window_font = QFont("FiraCode", 12)
         self.setFont(self.window_font)
-
+        
         self.set_up_menu()
 
         self.setUpBody()
+        self.setMouseTracking(True)
 
         self.set_up_status_bar()
 
@@ -53,7 +53,8 @@ class MainWindow(QMainWindow):
         venv = None
         if len(self.envs) > 0:
             venv = self.envs[0]
-        editor = Editor(path=path, env=venv, python_file=is_python_file)
+        # UPDATED EP 9
+        editor = Editor(self, path=path, env=venv, python_file=is_python_file)
         return editor
 
     def set_cursor_pointer(self, e: QEnterEvent) -> None:
@@ -156,7 +157,7 @@ class MainWindow(QMainWindow):
         side_bar_content.setContentsMargins(5, 10, 5, 0)
         side_bar_content.setAlignment(Qt.AlignTop | Qt.AlignCenter)
 
-        
+        # UPDATED EP 8
         ###############################################
         ############ File Manager ###############
 
@@ -166,6 +167,7 @@ class MainWindow(QMainWindow):
         self.file_manager_frame.setMinimumWidth(200)
 
         # layout for tree view
+        
         self.file_manager_layout = QVBoxLayout() # was tree_view_layout
         self.file_manager_layout.setContentsMargins(0, 0, 0, 0)
         self.file_manager_layout.setSpacing(0)
@@ -286,7 +288,6 @@ class MainWindow(QMainWindow):
         body.addWidget(self.side_bar)
         body.addWidget(self.hsplit)
         body_frame.setLayout(body)
-
         # set central widget
 
         self.setCentralWidget(body_frame)
@@ -302,11 +303,9 @@ class MainWindow(QMainWindow):
         editor.setCursorPosition(item.lineno, item.end)
         editor.setFocus()
 
-    def new_file_act(self):
-        """Create new file"""
-        ...
 
     def show_hide_tab(self, e: QMouseEvent, widget: str):
+        # NEW EPISODE 8 
         if self.current_side_bar == widget:
             if widget.isHidden():
                 widget.show()
@@ -314,7 +313,6 @@ class MainWindow(QMainWindow):
                 widget.hide()
 
             return
-
        
         self.hsplit.replaceWidget(0, widget)
         self.current_side_bar = widget
@@ -325,6 +323,7 @@ class MainWindow(QMainWindow):
         self.tab_view.removeTab(index)
 
     def tab_changed(self, index: int):
+        # NEW EPISODE 8 
         editor = self.tab_view.widget(index)
         if editor:
             self.current_file = editor.path
@@ -340,6 +339,8 @@ class MainWindow(QMainWindow):
     def set_up_menu(self):
         # Create a menu bar ,
         menu_bar = self.menuBar()
+        menu_bar.setMouseTracking(True)
+        menu_bar.mouseMoveEvent = lambda  e: print(e)
 
         # File menu
         file_menu = menu_bar.addMenu("File")
@@ -399,7 +400,10 @@ class MainWindow(QMainWindow):
             idx = self.hsplit.indexOf(self.welcome_frame)
             self.hsplit.replaceWidget(idx, self.tab_view)
             self.welcome_frame = None
+
         text_edit = self.get_editor(path, path.suffix in {".py", ".pyw"})
+        
+        
         if is_new_file:
             self.tab_view.addTab(text_edit, "untitled")
             self.setWindowTitle("untitled - " + self.app_name)
@@ -407,6 +411,7 @@ class MainWindow(QMainWindow):
             self.tab_view.setCurrentIndex(self.tab_view.count() - 1)
             self.current_file = None
             return
+        
 
         if not path.is_file():
             return
@@ -435,16 +440,25 @@ class MainWindow(QMainWindow):
         self.set_new_tab(None, True)
 
     def save_file(self):
+        # UPDATED EP 8
         # save file
         if self.current_file is None and self.tab_view.count() > 0:
             self.save_as()
             return
+
+        if self.current_file is None:
+            return
+
         text_edit = self.tab_view.currentWidget()
         self.current_file.write_text(text_edit.text())
         self.statusBar().showMessage(f"Saved {self.current_file.name}", 2000)
+        # UPDATED EP 9
+        editor: Editor = self.tab_view.currentWidget()
+        editor.current_file_changed = False
 
     def save_as(self):
         # save as
+        # UPDATED EP 8
         text_edit = self.tab_view.currentWidget()
         if text_edit is None:
             return
@@ -454,34 +468,33 @@ class MainWindow(QMainWindow):
             return
         path = Path(file_path)
         path.write_text(text_edit.text())
+        # new
+        self.current_file = path
         self.tab_view.setTabText(self.tab_view.currentIndex(), path.name)
         self.statusBar().showMessage(f"Saved {path.name}", 2000)
 
+        # UPDATED EP 9
+        editor: Editor = self.tab_view.currentWidget()
+        editor.current_file_changed = False
+
     def open_file_dlg(self):
-        ops = QFileDialog.Options()
-        # use custom dialog
-        ops |= QFileDialog.DontUseNativeDialog
         new_file, _ = QFileDialog.getOpenFileName(
-            self, "Pick A File", "", "All Files (*);;Python Files (*.py)", options=ops
+            self, "Pick A File", "", "All Files (*);;Python Files (*.py)"
         )
 
         f = Path(new_file)
         self.set_new_tab(f)
 
     def open_folder(self):
-        ops = QFileDialog.Options()
-        ops |= QFileDialog.DontUseNativeDialog
         new_folder = QFileDialog.getExistingDirectory(
-            self, "Pick A Folder", "", options=ops
+            self, "Pick A Folder", ""
         )
         if new_folder:
-            self.model.setRootPath(new_folder)
-            self.file_manager.setRootIndex(self.model.index(new_folder))
+            self.file_manager.model.setRootPath(new_folder)
+            self.file_manager.setRootIndex(self.file_manager.model.index(new_folder))
             self.statusBar().showMessage(f"Opened {new_folder}", 2000)
 
     
-
-
 if __name__ == "__main__":
     app = QApplication([])
     window = MainWindow()
