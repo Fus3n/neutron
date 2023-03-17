@@ -45,7 +45,7 @@ class SearchWorker(QThread):
             exclude_dirs.remove("venv")
         exclude_files = set([".svg", ".png", ".exe", ".pyc", ".qm"])
         for root, _, files in self.walkdir(current_path, exclude_dirs, exclude_files):
-            if len(self.items) > 10_000:
+            if len(self.items) > 5_000: # search limit
                 break
             for file_ in files:
                 full_path = os.path.join(root, file_)

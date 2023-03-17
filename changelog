@@ -11,4 +11,13 @@
     - fixed file saving
     - fixed save as
     - file manager, fixed dropEvent and new file counting
+    - file manager, fixed where it wasn't creating new file on correct directory
     - lexer, fixed comments bleeding over to next lines
+
+0.1.1
+-- New
+    - Added warning before closing tab if file was unsaved
+    - Added Open In File manager options in right-click interaction menu
+
+-- Fixes
+    - updated set_new_tab function

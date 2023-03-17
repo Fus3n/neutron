@@ -29,7 +29,7 @@ class AutoCompleter(QThread):
         except Exception as err:
             print("Autocomplete Error:", err)
         
-        self.finished.emit()
+        self.finished.emit()
 
     def load_autocomplete(self, completions: list[Completion]):
         self.api.clear()

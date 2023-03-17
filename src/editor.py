@@ -17,7 +17,9 @@ class Editor(QsciScintilla):
     def __init__(self, main_window, parent=None, path: Path = None,  python_file=True, env=None):
         super(Editor, self).__init__(parent)
         # UPDATED EP 9
+        self.first_launch = True # variable to keep track of if it's first launch
         self.main_window: MainWindow = main_window
+
         self.path = path
         self.full_path = self.path.absolute()
         self.is_python_file = python_file
@@ -180,6 +182,18 @@ class Editor(QsciScintilla):
     def set_autocomplete(self, value):
         self.complete_flag = value
 
+    def toggle_comment(self, text: str) -> str:
+        lines = text.split('\n')
+        toggled_lines = []
+        for line in lines:
+            if line.startswith('#'):
+                # remove the comment symbol from the line
+                toggled_lines.append(line[1:].lstrip())
+            else:
+                # add the comment symbol to the line
+                toggled_lines.append('# ' + line)
+        return '\n'.join(toggled_lines)
+
     def keyPressEvent(self, e: QKeyEvent) -> None:
         if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_Space:
             if self.is_python_file:
@@ -189,12 +203,27 @@ class Editor(QsciScintilla):
                 return
 
         # UPDATED EP 9
-        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_X:
+        if e.modifiers() == Qt.ControlModifier and e.key() == Qt.Key_X: # CUT SHORTCUT
             if not self.hasSelectedText():
                 line, index = self.getCursorPosition()
                 self.setSelection(line, 0, line, self.lineLength(line))
                 self.cut()
                 return 
+            
+        # UPDATED EP 9
+        if e.modifiers() == Qt.ControlModifier and e.text() == "/": # COMMENT SHORTCUT
+            if self.hasSelectedText():
+                start, startl, end, endl = self.getSelection()
+                self.setSelection(start, 0, end, self.lineLength(end)-1)
+                self.replaceSelectedText(self.toggle_comment(self.selectedText()))
+                self.setSelection(start, startl, end, endl)
+            else:
+                line, idx = self.getCursorPosition()
+                self.setSelection(line, 0, line, self.lineLength(line)-1)
+                self.replaceSelectedText(self.toggle_comment(self.selectedText()))
+                self.setSelection(-1, -1, -1, -1) # reset selection
+            
+            return 
 
         return super().keyPressEvent(e)
 
@@ -207,22 +236,7 @@ class Editor(QsciScintilla):
 
     # UPDATED EP 9
     def textChangedCustom(self) -> None:
-        if not self.current_file_changed:
+        if not self.current_file_changed and not self.first_launch:
             self.current_file_changed = True
-
-
-    # def marginClicked(self, margin: int, line: int, state: typing.Union[Qt.KeyboardModifiers, Qt.KeyboardModifier]) -> None:
-    #     # check if marker is set
-    #     if self.markersAtLine(line) != 0:
-    #         self.markerDelete(line, 1)
-    #     else:
-    #         self.markerAdd(line, 1)
-    #         self.SendScintilla(QsciScintilla.SCI_SETINDICATORCURRENT, 0)
-    #         # Assign a value to the text
-    #         self.SendScintilla(QsciScintilla.SCI_SETINDICATORVALUE, 1)
-
-    #         start_pos = self.positionFromLineIndex(line, 0)
-    #         # Now apply the indicator-style on the chosen text
-    #         self.SendScintilla(QsciScintilla.SCI_INDICATORFILLRANGE, start_pos, len(self.text(line)))
-    #     # return super().marginClicked(margin, line, state)
-
+        if self.first_launch:
+            self.first_launch = False

@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -6,9 +8,13 @@ from PyQt5.Qsci import *
 from pathlib import Path
 import shutil
 import os
-
+import subprocess
 
 from editor import Editor
+
+if TYPE_CHECKING:
+    from main import MainWindow
+
 
 # UPDATED EP 8
 class FileManager(QTreeView):
@@ -17,7 +23,7 @@ class FileManager(QTreeView):
         
         self.set_new_tab = set_new_tab
         self.tab_view = tab_view
-        self.main_window = main_window
+        self.main_window: MainWindow = main_window
 
         # Rename feature variables
         self.is_renaming = False
@@ -94,6 +100,7 @@ class FileManager(QTreeView):
         menu = QMenu()
         menu.addAction("New File")
         menu.addAction("New Folder")
+        menu.addAction("Open In File Manager")
 
         if ix.column() != -1:
             menu.addAction("Rename")
@@ -111,20 +118,29 @@ class FileManager(QTreeView):
             self.action_new_folder()
         elif action.text() == "New File":
             self.action_new_file(ix)
+        elif action.text() == "Open In File Manager":
+            self.action_open_in_file_manager(ix)
         else:
             pass
 
     def rename_file_with_index(self):
         # UPDATED EP 8
+        
         new_name = self.model.fileName(self.current_edit_index)
         if self.previous_rename_name == new_name:
             return
+        
         for editor in self.tab_view.findChildren(Editor):
             if editor.path.name == self.previous_rename_name:
                 editor.path = editor.path.parent / new_name
+                editor_index = self.tab_view.indexOf(editor)
+                prev_tab_name = self.tab_view.tabText(editor_index)
+                new_tab_name = "*"+new_name if prev_tab_name.startswith("*") else new_name # add star on new tab name if file was unsaved
                 self.tab_view.setTabText(
-                    self.tab_view.indexOf(editor), new_name
+                    self.tab_view.indexOf(editor), new_tab_name 
                 )
+                if self.main_window.tab_view.currentWidget() == editor:
+                    self.main_window.setWindowTitle(f"{new_tab_name} - {self.main_window.app_name}")
                 self.tab_view.repaint()
                 editor.full_path = editor.path.absolute()
                 self.main_window.current_file = editor.path
@@ -190,6 +206,30 @@ class FileManager(QTreeView):
         # edit that index
         self.edit(idx)
 
+    # UPDATED EP 9
+    def action_open_in_file_manager(self, ix: QModelIndex):
+        path = os.path.abspath(self.model.filePath(ix))
+        is_dir = self.model.isDir(ix)
+        if os.name == 'nt':
+            # Windows
+            if is_dir:
+                subprocess.Popen(f'explorer "{path}"')
+            else:
+                subprocess.Popen(f'explorer /select,"{os.path.abspath(path)}"')
+        elif os.name == 'posix':
+            # Linux or MacOS
+            if sys.platform == 'darwin':
+                # macOS
+                if is_dir:
+                    subprocess.Popen(['open', path])
+                else:
+                    subprocess.Popen(['open', '-R', path])
+            else:
+                # Linux
+                subprocess.Popen(['xdg-open', os.path.dirname(path)])
+        else:
+            raise OSError(f'Unsupported OS: {os.name}')
+
     # item drop
     def dropEvent(self, e: QDropEvent) -> None:
         # UPDATED EP 9
@@ -210,7 +250,6 @@ class FileManager(QTreeView):
                             shutil.move(path, folder_path / path.name)
                     else:
                         shutil.copy(path, root_path / path.name)
-                        
                         
         e.accept()
 
