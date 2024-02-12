@@ -6,6 +6,11 @@ import json
 
 from PyQt5.QtGui import QFont, QColor
 from PyQt5.Qsci import QsciLexerCustom, QsciScintilla
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from editor import Editor
 
 # QFont::Thin	100	100
 # QFont::ExtraLight	200	200
@@ -28,6 +33,7 @@ class NeutronLexer(QsciLexerCustom):
 
         self.editor = editor
         self.language_name = language_name
+        
         self.theme_json = None
         if theme is None:
             self.theme = "./theme.json"
@@ -322,3 +328,56 @@ class PyCustomLexer(NeutronLexer):
                 self.setStyling(tok_len, self.DEFAULT)
 
 
+class JsonLexer(NeutronLexer):
+    """Custom lexer for JSON"""
+
+    def __init__(self, editor):
+        super(JsonLexer, self).__init__("JSON", editor)
+        self.setBuiltinNames([
+            "true",
+            "false"
+        ])
+
+    def styleText(self, start, end):
+        # 1. Initialize the styling procedure
+        # ------------------------------------
+        self.startStyling(start)
+
+        # 2. Slice out a part from the text
+        # ----------------------------------
+        text = self.editor.text()[start:end]
+        # 3. Tokenize the text
+        # ---------------------
+        self.generate_tokens(text)
+
+        # Flags
+        string_flag = False
+
+        while True:
+            curr_token = self.next_tok()
+            if curr_token is None:
+                break
+            
+            tok: str = curr_token[0]
+            tok_len: int = curr_token[1]
+
+            if string_flag:
+                self.setStyling(curr_token[1], self.STRING)
+                if tok == '"' or tok == "'":
+                    string_flag = False
+                continue
+            elif tok.isnumeric():
+                self.setStyling(tok_len, self.CONSTANTS)
+                continue
+            elif tok in ["(", ")", "{", "}", "[", "]"]:
+                self.setStyling(tok_len, self.BRACKETS)
+                continue
+            elif tok == '"' or tok == "'":
+                self.setStyling(tok_len, self.STRING)
+                string_flag = True
+                continue
+            elif tok in self.builtin_names:
+                self.setStyling(tok_len, self.TYPES)
+                continue
+            else:
+                self.setStyling(tok_len, self.DEFAULT)

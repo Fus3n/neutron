@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import jedi
 
-
+# Main window class
 class MainWindow(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
@@ -36,25 +36,24 @@ class MainWindow(QMainWindow):
         self.resize(1300, 900)
 
         self.setStyleSheet(open("./src/styles/style.qss", "r").read())
+        
         self.window_font = QFont("FiraCode", 12)
         self.setFont(self.window_font)
         
         self.set_up_menu()
-
         self.setUpBody()
         self.setMouseTracking(True)
-
         self.set_up_status_bar()
 
         self.show()
 
-    def get_editor(self, path: Path = None, is_python_file=True) -> QsciScintilla:
+    def get_editor(self, path: Path = None, file_type=".py") -> QsciScintilla:
         """Create a New Editor"""
         venv = None
         if len(self.envs) > 0:
             venv = self.envs[0]
         # UPDATED EP 9
-        editor = Editor(self, path=path, env=venv, python_file=is_python_file)
+        editor = Editor(self, path=path, env=venv, file_type=file_type)
         return editor
 
     def set_cursor_pointer(self, e: QEnterEvent) -> None:
@@ -349,6 +348,7 @@ class MainWindow(QMainWindow):
         if editor:
             self.current_file = editor.path
 
+    # UPDATED EP 9 
     def set_up_status_bar(self):
         # Create a status bar
         stat = QStatusBar(self)
@@ -429,7 +429,7 @@ class MainWindow(QMainWindow):
             self.hsplit.replaceWidget(idx, self.tab_view)
             self.welcome_frame = None
 
-        text_edit = self.get_editor(path, path.suffix in {".py", ".pyw"})
+        text_edit = self.get_editor(path, path.suffix)
         
         if is_new_file:
             self.tab_view.addTab(text_edit, "untitled")
@@ -474,8 +474,7 @@ class MainWindow(QMainWindow):
         self.current_file.write_text(text_edit.text())
         self.statusBar().showMessage(f"Saved {self.current_file.name}", 2000)
         # UPDATED EP 9
-        editor: Editor = self.tab_view.currentWidget()
-        editor.current_file_changed = False
+        text_edit.current_file_changed = False
 
     def save_as(self):
         # save as

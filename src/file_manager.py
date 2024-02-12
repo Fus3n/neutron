@@ -125,7 +125,6 @@ class FileManager(QTreeView):
 
     def rename_file_with_index(self):
         # UPDATED EP 8
-        
         new_name = self.model.fileName(self.current_edit_index)
         if self.previous_rename_name == new_name:
             return
@@ -180,10 +179,9 @@ class FileManager(QTreeView):
     def action_new_file(self, ix: QModelIndex):
         # UPDATED EP 9
         root_path = self.model.rootPath()
-        if ix.column() != -1:
-            if self.model.isDir(ix):
-                self.expand(ix)
-                root_path = self.model.filePath(ix)
+        if ix.column() != -1 and self.model.isDir(ix):
+            self.expand(ix)
+            root_path = self.model.filePath(ix)
             
         # find file with name "file" in tree view
         f = Path(root_path) / "file"
@@ -215,7 +213,7 @@ class FileManager(QTreeView):
             if is_dir:
                 subprocess.Popen(f'explorer "{path}"')
             else:
-                subprocess.Popen(f'explorer /select,"{os.path.abspath(path)}"')
+                subprocess.Popen(f'explorer /select,"{path}"')
         elif os.name == 'posix':
             # Linux or MacOS
             if sys.platform == 'darwin':

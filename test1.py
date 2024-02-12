@@ -5,16 +5,20 @@ class Main:
     @property
     def name(self):
         return self._name
-    
+
     @name.setter
     def name(self, name):
         print("sette")
         self._name = name
 
-
 m = Main()
 m.name = "Asif"
 print(m.name)
+
+
+
+
+
 
 
 

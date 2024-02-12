@@ -1,16 +1,7 @@
 QMainWindow {
     background-color: #282c34;
     color: #D3D3D3;
-    
 }
-/* QScrollBar:horizontal {
-    height: 20px;
-    background: #2d2d2d;
-    margin: 0px 0px 0px 0px;
-    padding: 0px 0px 0px 0px;
-    border: 0px solid #2d2d2d;
-    border-style: none;
-} */
 
 QTabWidget {
     background-color: #282c34;
@@ -173,18 +164,21 @@ QListView {
     padding: 5px;
     color: #D3D3D3;
 }
+
+QTreeView::item {
+    border: 1px solid transparent;
+}
+
 QTreeView::item:hover {
     background-color: #323842;
     border: 1px solid #D3D3D3;
     border-radius: 3px;
     color: #D3D3D3;
-    
 }
 
 QTreeView::item:selected {
     background-color: #323842;
     border-style: none;
-    /* border: 1px solid #D3D3D3; */
     color: #D3D3D3;
 }
 

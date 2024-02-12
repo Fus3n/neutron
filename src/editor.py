@@ -5,7 +5,8 @@ from PyQt5.Qsci import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
-from lexer import PyCustomLexer
+from lexer import PyCustomLexer, JsonLexer
+from file_types import get_file_type, FileType
 from autocompleter import AutoCompleter
 
 if TYPE_CHECKING:
@@ -14,18 +15,27 @@ if TYPE_CHECKING:
 
 class Editor(QsciScintilla):
 
-    def __init__(self, main_window, parent=None, path: Path = None,  python_file=True, env=None):
+    def __init__(self, main_window, parent=None, path: Path = None, file_type=".py", env=None):
         super(Editor, self).__init__(parent)
         # UPDATED EP 9
         self.first_launch = True # variable to keep track of if it's first launch
         self.main_window: MainWindow = main_window
 
         self.path = path
+        self.file_type: FileType = get_file_type(file_type)
         self.full_path = self.path.absolute()
-        self.is_python_file = python_file
+        self.is_python_file = self.file_type == FileType.Python
         self.venv = env
         self._current_file_changed = False        
-    
+        # self.setStyleSheet("""
+        # QListView {
+        #         background-color: #1961cd;
+        #         border-radius: 5px;
+        #         border: 1px solid #D3D3D3;
+        #         padding: 5px;
+        #         color: #D3D3D3;
+        #     }
+        # """) # custom css for autocomplete
         # EDITOR
         self.cursorPositionChanged.connect(self.cursorPositionChangedCustom)
         # UPDATED EP 9
@@ -83,7 +93,7 @@ class Editor(QsciScintilla):
         self.setEolMode(QsciScintilla.EolMode.EolWindows)
         self.setEolVisibility(False)
 
-        if self.is_python_file:
+        if self.file_type == FileType.Python:
             # lexer
             self.pylexer = PyCustomLexer(self)
             # QsciLexerPython
@@ -97,8 +107,12 @@ class Editor(QsciScintilla):
 
             self.auto_completer = AutoCompleter(self.full_path, self.__api)
             self.auto_completer.finished.connect(self.loaded_autocomp)
-            
             self.setLexer(self.pylexer)
+
+        elif self.file_type == FileType.Json:
+            self.jsonlexer = JsonLexer(self)
+            self.jsonlexer.setDefaultFont(self.font)
+            self.setLexer(self.jsonlexer)
         else:
             # self.lexer = QsciLexer()
             self.setPaper(QColor("#282c34"))
