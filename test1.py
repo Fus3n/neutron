@@ -12,7 +12,7 @@ class Main:
         self._name = name
 
 m = Main()
-m.name = "Asif"
+m.name = "Fusen"
 print(m.name)
 
 

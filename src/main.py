@@ -5,6 +5,8 @@ from PyQt5.Qsci import *
 from editor import Editor
 from file_manager import FileManager
 from fuzzy_searcher import SearchItem, SearchWorker
+from heading import Heading
+from qframelesswindow import FramelessMainWindow, AcrylicWindow
 import resources
 
 import sys
@@ -13,9 +15,9 @@ from pathlib import Path
 import jedi
 
 # Main window class
-class MainWindow(QMainWindow):
+class MainWindow(FramelessMainWindow):
     def __init__(self):
-        super(QMainWindow, self).__init__()
+        super().__init__()
         self.app_name = "QCodeEditor"
 
         self.current_file = None
@@ -32,6 +34,8 @@ class MainWindow(QMainWindow):
         self._current_file: Path = file
 
     def init_ui(self):
+        # self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint)
+        # self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowTitle(self.app_name)
         self.resize(1300, 900)
 
@@ -40,7 +44,7 @@ class MainWindow(QMainWindow):
         self.window_font = QFont("FiraCode", 12)
         self.setFont(self.window_font)
         
-        self.set_up_menu()
+        # self.set_up_menu()
         self.setUpBody()
         self.setMouseTracking(True)
         self.set_up_status_bar()
@@ -64,6 +68,7 @@ class MainWindow(QMainWindow):
 
     def get_sidebar_button(self, img_path: str, widget) -> QLabel:
         label = QLabel()
+        label.setStyleSheet("border: none;")
         label.setPixmap(QPixmap(img_path).scaled(QSize(32, 32)))
         label.setAlignment(Qt.AlignmentFlag.AlignTop)
         label.setFont(self.window_font)
@@ -118,8 +123,6 @@ class MainWindow(QMainWindow):
         body = QHBoxLayout()
         body.setContentsMargins(0, 0, 0, 0)
         body.setSpacing(0)
-        body_frame.setLayout(body)
-
         ###############################################
         ################# HSPLIT ######################
         # horizontal split view
@@ -276,20 +279,60 @@ class MainWindow(QMainWindow):
         welcome_layout.addWidget(wlcm_msg)
         self.welcome_frame.setLayout(welcome_layout)
 
+        self.file_manager_frame.setStyleSheet(self.file_manager_frame.styleSheet() + "border: none;")
+        self.welcome_frame.setStyleSheet(self.welcome_frame.styleSheet() + "border: none;")
+        self.side_bar.setStyleSheet(self.side_bar.styleSheet() + "border: none; border-right: 1px solid #333641;")
+        self.tab_view.setStyleSheet(self.tab_view.styleSheet() + "border: none;")
+        self.hsplit.setStyleSheet(self.hsplit.styleSheet() + "border: none;")
+        
+        body_frame.setStyleSheet(body_frame.styleSheet() + "border: none;")
+
+
         # add file manager and tab view
         self.hsplit.addWidget(self.file_manager_frame)
         self.hsplit.addWidget(self.welcome_frame)
         self.current_side_bar = self.file_manager_frame
+
+        # header
+        self.header = Heading(self)
+        self.header.setStyleSheet(self.header.styleSheet() + "border: none; border-bottom: 1px solid #333641; border-bottom-left-radius: 0; border-bottom-right-radius: 0;")
         
         # self.hsplit.addWidget(self.tab_view)
 
         # add hsplit and sidebar to body
-        body.addWidget(self.side_bar)
+        # body.addWidget(self.side_bar)
         body.addWidget(self.hsplit)
-        body_frame.setLayout(body)
+
+        # top and bottom stuff
+        full_body = QVBoxLayout()
+        full_body.setContentsMargins(0, 0, 0, 0)  
+        full_body.setSpacing(0)
+        full_body.addWidget(self.header)        
+        full_body.addLayout(body)        
+
+        body_frame.setLayout(full_body)
         # set central widget
 
         self.setCentralWidget(body_frame)
+        self.frame_stlye = f"""
+        QFrame {{
+            background: #282c34;
+            border-radius: 10px;
+            border: 0.5px solid #3A3E49;
+            border-bottom-left-radius: 0; 
+            border-bottom-right-radius: 0;
+        }}
+        """
+        self.frame_style_no_border = f"""
+        QFrame {{
+            background: #282c34;
+            border-radius: 0px;
+        }}
+        """
+        
+        self.centralWidget().setStyleSheet(self.frame_stlye)
+
+
 
     def search_finished(self, items):
         self.search_list_view.clear()
@@ -301,7 +344,6 @@ class MainWindow(QMainWindow):
         editor: Editor = self.tab_view.currentWidget()
         editor.setCursorPosition(item.lineno, item.end)
         editor.setFocus()
-
 
     def show_hide_tab(self, e: QMouseEvent, widget: str):
         # NEW EPISODE 8 
@@ -361,7 +403,7 @@ class MainWindow(QMainWindow):
         # Create a menu bar ,
         menu_bar = self.menuBar()
         menu_bar.setMouseTracking(True)
-        menu_bar.mouseMoveEvent = lambda  e: print(e)
+        
 
         # File menu
         file_menu = menu_bar.addMenu("File")
@@ -516,6 +558,14 @@ class MainWindow(QMainWindow):
 
     
 if __name__ == "__main__":
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+    Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
     app = QApplication([])
+    app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
+
     window = MainWindow()
+    app.installEventFilter(window.header)
     sys.exit(app.exec_())

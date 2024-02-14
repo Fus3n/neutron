@@ -27,15 +27,6 @@ class Editor(QsciScintilla):
         self.is_python_file = self.file_type == FileType.Python
         self.venv = env
         self._current_file_changed = False        
-        # self.setStyleSheet("""
-        # QListView {
-        #         background-color: #1961cd;
-        #         border-radius: 5px;
-        #         border: 1px solid #D3D3D3;
-        #         padding: 5px;
-        #         color: #D3D3D3;
-        #     }
-        # """) # custom css for autocomplete
         # EDITOR
         self.cursorPositionChanged.connect(self.cursorPositionChangedCustom)
         # UPDATED EP 9
@@ -165,6 +156,8 @@ class Editor(QsciScintilla):
         # editor.marginClickEolWindowsed.connect(self.handle_margin)
 
         self.indicatorDefine(QsciScintilla.SquigglePixmapIndicator, 0)
+
+        
 
     # UPDATED EP 9
     @property
