@@ -13,6 +13,7 @@ import sys
 import os
 from pathlib import Path
 import jedi
+from PyQt5.QtGui import QIcon
 
 # Main window class
 class MainWindow(FramelessMainWindow):
@@ -68,8 +69,9 @@ class MainWindow(FramelessMainWindow):
 
     def get_sidebar_button(self, img_path: str, widget) -> QLabel:
         label = QLabel()
-        label.setStyleSheet("border: none;")
-        label.setPixmap(QPixmap(img_path).scaled(QSize(32, 32)))
+        label.setStyleSheet("border: none; padding: 4px;")
+        icon = QIcon(img_path)
+        label.setPixmap(icon.pixmap(30, 30))
         label.setAlignment(Qt.AlignmentFlag.AlignTop)
         label.setFont(self.window_font)
         label.mousePressEvent = lambda e: self.show_hide_tab(e, widget)
@@ -149,7 +151,7 @@ class MainWindow(FramelessMainWindow):
         self.side_bar.setFrameShape(QFrame.StyledPanel)
         self.side_bar.setFrameShadow(QFrame.Raised)
         self.side_bar.setContentsMargins(0, 0, 0, 0)
-        self.side_bar.setMaximumWidth(40)
+        self.side_bar.setMaximumWidth(50)
         self.side_bar.setStyleSheet(
             """
             background-color: #282c34;
@@ -230,10 +232,10 @@ class MainWindow(FramelessMainWindow):
         ####################################################
         ############## SideBar Icons #######################
         folder_label = self.get_sidebar_button(
-            ":/icons/folder-icon-blue.svg", self.file_manager_frame
+            ":/icons/folder_icon.svg", self.file_manager_frame
         )
         side_bar_content.addWidget(folder_label)
-        search_label = self.get_sidebar_button(":/icons/search-icon.svg", self.search_frame)
+        search_label = self.get_sidebar_button(":/icons/search_icon.svg", self.search_frame)
         side_bar_content.addWidget(search_label)
 
         self.side_bar.setLayout(side_bar_content)
