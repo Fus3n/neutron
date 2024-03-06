@@ -1,8 +1,8 @@
-import os
-from pathlib import Path
-import re
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QListWidgetItem
+
+import os, re
+from pathlib import Path
 
 class SearchItem(QListWidgetItem):
     def __init__(self, name, full_path, lineno, end, line):

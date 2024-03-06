@@ -2,9 +2,6 @@ from PyQt5.QtCore import QThread
 from PyQt5.Qsci import QsciAPIs
 from jedi import Script
 from jedi.api import Completion
-import jedi
-from PyQt5.Qsci import *
-
 
 class AutoCompleter(QThread):
     def __init__(self, file_path, api):
@@ -14,7 +11,6 @@ class AutoCompleter(QThread):
         self.script: Script = None
         self.api: QsciAPIs = api
         self.completions: list[Completion] = None
-        # self.env = jedi.get_default_environment()
 
         self.line = 0
         self.index = 0
@@ -29,7 +25,8 @@ class AutoCompleter(QThread):
         except Exception as err:
             print("Autocomplete Error:", err)
         
-        self.finished.emit()
+        self.finished.emit()
+
 
     def load_autocomplete(self, completions: list[Completion]):
         self.api.clear()

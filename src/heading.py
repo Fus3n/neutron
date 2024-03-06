@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (
-   QFrame, QHBoxLayout, QLabel, QPushButton, QWidget, QMenu, QAction
+   QFrame, QHBoxLayout, QLabel, QWidget, QMenu, QAction, QMenuBar, QPushButton
 )
 
 from PyQt5.QtCore import Qt, QEvent, QSize
@@ -16,69 +16,62 @@ class MenuItems(QWidget):
         self.lay.setContentsMargins(0, 0, 0, 0)
         self.lay.setSpacing(3)
 
+        self.add_menu_bar()
 
-        self.file_label = self.get_lbl("File")
-        self.file_label.mousePressEvent = self.mpEvent
-        edit_label = self.get_lbl("Edit")
+    def add_menu_bar(self):
+        menu_bar = QMenuBar()
+        menu_bar.setMouseTracking(True)
 
-        self.lay.addWidget(self.file_label)
-        self.lay.addWidget(edit_label)
-
-    def mpEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            pos = self.file_label.pos()
-            pos.setY(pos.y() + 10)
-            self.show_file_menu(pos)
-        else:
-            super().mousePressEvent(event)
-            
-            
-    def show_file_menu(self, pos):
-        context_menu = QMenu(self)
+        # File menu
+        file_menu = menu_bar.addMenu("File")
 
         new_file = QAction("New", self)
         new_file.setShortcut("Ctrl+N")
         new_file.triggered.connect(self.main_window.new_file)
-        context_menu.addAction(new_file)
 
         save_file = QAction("Save", self)
         save_file.setShortcut("Ctrl+S")
         save_file.triggered.connect(self.main_window.save_file)
-        context_menu.addAction(save_file)
 
         save_as = QAction("Save As", self)
         save_as.setShortcut("Ctrl+Shift+S")
         save_as.triggered.connect(self.main_window.save_as)
-        context_menu.addAction(save_as)
 
-        context_menu.exec_(pos)
+        open_file = QAction("Open File", self)
+        open_file.setShortcut("Ctrl+O")
+        open_file.triggered.connect(self.main_window.open_file_dlg)
 
-    def get_lbl(self, txt):
-        lbl = QLabel(txt)
-        lbl.setCursor(Qt.CursorShape.PointingHandCursor)
-        lbl.setStyleSheet("""
-        QLabel {
-            font-size: 14px; 
-            color: white; 
-            margin-right: 10px; 
-            border: none;
-            border-radius: 5px;
-        }
-        QLabel::hover {
-           background: rgba(255, 255, 255, 0.1);
-        }
-        """)
-        lbl.mousePressEvent = lambda e: self.main_window.menu_clicked(e, txt)
-        return lbl
+        open_folder_action = QAction("Open Folder", self)
+        open_folder_action.setShortcut("Ctrl+K")
+        open_folder_action.triggered.connect(self.main_window.open_folder)
 
+        # Add the menu item to the menu
+        file_menu.addAction(new_file)
+        file_menu.addSeparator()
+        file_menu.addAction(open_file)
+        file_menu.addAction(open_folder_action)
+        file_menu.addSeparator()
+        file_menu.addAction(save_file)
+        file_menu.addAction(save_as)
+        file_menu.addSeparator()
 
+        # Edit menu
+        edit_menu = menu_bar.addMenu("Edit")
+        copy_action = QAction("Copy", self)
+        copy_action.setShortcut("Ctrl+C")
+        copy_action.triggered.connect(self.main_window.copy)
+
+        edit_menu.addAction(copy_action)
+
+        menu_bar.setMinimumHeight(40)
+        self.lay.addWidget(menu_bar)
 
 class Heading(QFrame):
 
     def __init__(self, main_window) -> None:
         super().__init__(None)
         self.main_window = main_window
-        self.setFixedHeight(40)
+        self.setFixedHeight(45)
         
         main_layout = QHBoxLayout(self)
         img_logo = QImage(25, 25, QImage.Format.Format_Alpha8)
@@ -90,7 +83,7 @@ class Heading(QFrame):
         # main_layout.addWidget(self.title_lbl, alignment=Qt.AlignmentFlag.AlignLeft) 
 
         menu = MenuItems(self.main_window)
-        main_layout.addWidget(menu, alignment=Qt.AlignmentFlag.AlignLeft) 
+        main_layout.addWidget(menu, alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignCenter) 
 
         self.path_lbl = QLabel("")
         self.path_lbl.setStyleSheet(f"font-size: 14px; font-weight: bold; color: white; margin-right: 10px; border: none;") 

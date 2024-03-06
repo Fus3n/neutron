@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
 from pathlib import Path
-from PyQt5.Qsci import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5.Qsci import QsciScintilla, QsciAPIs
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QColor, QKeyEvent
 
 from lexer import PyCustomLexer, JsonLexer
 from file_types import get_file_type, FileType
@@ -17,7 +17,6 @@ class Editor(QsciScintilla):
 
     def __init__(self, main_window, parent=None, path: Path = None, file_type=".py", env=None):
         super(Editor, self).__init__(parent)
-        # UPDATED EP 9
         self.first_launch = True # variable to keep track of if it's first launch
         self.main_window: MainWindow = main_window
 
@@ -29,7 +28,6 @@ class Editor(QsciScintilla):
         self._current_file_changed = False        
         # EDITOR
         self.cursorPositionChanged.connect(self.cursorPositionChangedCustom)
-        # UPDATED EP 9
         self.textChanged.connect(self.textChangedCustom)
  
         # encoding       

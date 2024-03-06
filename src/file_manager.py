@@ -1,9 +1,16 @@
 from typing import TYPE_CHECKING
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.Qsci import *
+from PyQt5.QtWidgets import (
+    QTreeView,
+    QFileSystemModel,
+    QAbstractItemView,
+    QLineEdit,
+    QSizePolicy,
+    QMessageBox,
+    QMenu
+)
+from PyQt5.QtCore import Qt, QDir, QModelIndex, QPoint
+from PyQt5.QtGui import QFont, QIcon, QDropEvent, QDragEnterEvent
 
 from pathlib import Path
 import shutil

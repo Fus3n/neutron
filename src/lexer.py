@@ -5,7 +5,7 @@ import types
 import json
 
 from PyQt5.QtGui import QFont, QColor
-from PyQt5.Qsci import QsciLexerCustom, QsciScintilla
+from PyQt5.Qsci import QsciLexerCustom
 from typing import TYPE_CHECKING
 
 

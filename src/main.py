@@ -1,12 +1,26 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.Qsci import *
+from PyQt5.QtWidgets import (
+    QDesktopWidget, QApplication,
+    QFrame,
+    QSizePolicy,
+    QHBoxLayout,
+    QSplitter,
+    QVBoxLayout,
+    QTabWidget,
+    QLineEdit, QCheckBox, QLabel,
+    QListWidget,
+    QSpacerItem,
+    QMessageBox, QStatusBar, QFileDialog
+)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QEnterEvent, QMouseEvent
+from PyQt5.Qsci import QsciScintilla
+
 from editor import Editor
 from file_manager import FileManager
 from fuzzy_searcher import SearchItem, SearchWorker
 from heading import Heading
-from qframelesswindow import FramelessMainWindow, AcrylicWindow
+
+from qframelesswindow import FramelessMainWindow
 import resources
 
 import sys
@@ -39,18 +53,25 @@ class MainWindow(FramelessMainWindow):
         # self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowTitle(self.app_name)
         self.resize(1300, 900)
+        # put the window Location center in screen
+        self.center()
 
         self.setStyleSheet(open("./src/styles/style.qss", "r").read())
         
         self.window_font = QFont("FiraCode", 12)
         self.setFont(self.window_font)
         
-        # self.set_up_menu()
         self.setUpBody()
         self.setMouseTracking(True)
         self.set_up_status_bar()
 
         self.show()
+
+    def center(self):
+        qr = self.frameGeometry()
+        cp = QDesktopWidget().availableGeometry().center()
+        qr.moveCenter(cp)
+        self.move(qr.topLeft())
 
     def get_editor(self, path: Path = None, file_type=".py") -> QsciScintilla:
         """Create a New Editor"""
@@ -176,9 +197,19 @@ class MainWindow(FramelessMainWindow):
         self.file_manager_layout.setContentsMargins(0, 0, 0, 0)
         self.file_manager_layout.setSpacing(0)
 
-        self.file_manager = FileManager(tab_view=self.tab_view,set_new_tab=self.set_new_tab, main_window=self) # was tree_view
 
         # setup layout
+        # get current direcotory
+        self.current_dir_lbl = QLabel(Path(os.getcwd()).name)
+        self.current_dir_lbl.setStyleSheet("""
+        font-size: 14px;
+        background-color: #282c34;
+        font-weight: bold;
+        """)
+
+        self.file_manager = FileManager(tab_view=self.tab_view,set_new_tab=self.set_new_tab, main_window=self) # was tree_view
+        
+        self.file_manager_layout.addWidget(self.current_dir_lbl)
         self.file_manager_layout.addWidget(self.file_manager)
         self.file_manager_frame.setLayout(self.file_manager_layout)
 
@@ -334,8 +365,6 @@ class MainWindow(FramelessMainWindow):
         
         self.centralWidget().setStyleSheet(self.frame_stlye)
 
-
-
     def search_finished(self, items):
         self.search_list_view.clear()
         for i in items:
@@ -401,52 +430,6 @@ class MainWindow(FramelessMainWindow):
         stat.showMessage("Ready", 3000)
         self.setStatusBar(stat)
 
-    def set_up_menu(self):
-        # Create a menu bar ,
-        menu_bar = self.menuBar()
-        menu_bar.setMouseTracking(True)
-        
-
-        # File menu
-        file_menu = menu_bar.addMenu("File")
-
-        new_file = QAction("New", self)
-        new_file.setShortcut("Ctrl+N")
-        new_file.triggered.connect(self.new_file)
-
-        save_file = QAction("Save", self)
-        save_file.setShortcut("Ctrl+S")
-        save_file.triggered.connect(self.save_file)
-
-        save_as = QAction("Save As", self)
-        save_as.setShortcut("Ctrl+Shift+S")
-        save_as.triggered.connect(self.save_as)
-
-        open_file = QAction("Open File", self)
-        open_file.setShortcut("Ctrl+O")
-        open_file.triggered.connect(self.open_file_dlg)
-
-        open_folder_action = QAction("Open Folder", self)
-        open_folder_action.setShortcut("Ctrl+K")
-        open_folder_action.triggered.connect(self.open_folder)
-
-        # Add the menu item to the menu
-        file_menu.addAction(new_file)
-        file_menu.addAction(open_file)
-        file_menu.addAction(open_folder_action)
-        file_menu.addSeparator()
-        file_menu.addAction(save_file)
-        file_menu.addAction(save_as)
-        file_menu.addSeparator()
-
-        # Edit menu
-        edit_menu = menu_bar.addMenu("Edit")
-        copy_action = QAction("Copy", self)
-        copy_action.setShortcut("Ctrl+C")
-        copy_action.triggered.connect(self.copy)
-
-        edit_menu.addAction(copy_action)
-
     def is_binary(self, path):
         """
         Check if file is binary
@@ -470,8 +453,8 @@ class MainWindow(FramelessMainWindow):
         
         if self.welcome_frame:
             idx = self.hsplit.indexOf(self.welcome_frame)
-            self.hsplit.replaceWidget(idx, self.tab_view)
-            self.welcome_frame = None
+            if idx != -1:
+                self.hsplit.replaceWidget(idx, self.tab_view)
 
         text_edit = self.get_editor(path, path.suffix)
         
@@ -546,8 +529,9 @@ class MainWindow(FramelessMainWindow):
             self, "Pick A File", "", "All Files (*);;Python Files (*.py)"
         )
 
-        f = Path(new_file)
-        self.set_new_tab(f)
+        if new_file:
+            f = Path(new_file)
+            self.set_new_tab(f)
 
     def open_folder(self):
         new_folder = QFileDialog.getExistingDirectory(
@@ -557,6 +541,12 @@ class MainWindow(FramelessMainWindow):
             self.file_manager.model.setRootPath(new_folder)
             self.file_manager.setRootIndex(self.file_manager.model.index(new_folder))
             self.statusBar().showMessage(f"Opened {new_folder}", 2000)
+            self.current_dir_lbl.setText(Path(new_folder).name)
+
+            self.tab_view.clear()
+            idx = self.hsplit.indexOf(self.tab_view)
+            if idx != -1:
+                self.hsplit.replaceWidget(idx, self.welcome_frame)
 
     
 if __name__ == "__main__":
